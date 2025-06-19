@@ -4,78 +4,116 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文件管理系统 - 登录</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <style>
         body {
-            font-family: 'Microsoft YaHei', sans-serif;
-            background: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            background: linear-gradient(135deg, #e3f0ff 0%, #fafdff 100%);
             display: flex;
             align-items: center;
             justify-content: center;
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
         }
-        .login-container {
-            background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
+        .login-form-box {
+            width: 340px;
+            padding: 36px 32px 28px 32px;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px 0 rgba(33,150,243,0.08);
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
         }
         .login-title {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #174ea6;
+            margin-bottom: 2.2rem;
+            letter-spacing: 1px;
             text-align: center;
-            color: #333;
-            margin-bottom: 2rem;
         }
         .form-group {
-            margin-bottom: 1rem;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #666;
+            margin-bottom: 1.3rem;
+            position: relative;
         }
         .form-group input {
             width: 100%;
-            padding: 0.8rem;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            padding: 0.9rem 1rem 0.9rem 2.7rem;
+            border: 1.5px solid #e3e8ee;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: #f7fafc;
+            transition: border 0.2s, box-shadow 0.2s;
+            outline: none;
             box-sizing: border-box;
+        }
+        .form-group input:focus {
+            border: 1.5px solid #2196F3;
+            box-shadow: 0 0 0 2px #e3f2fd;
+            background: #fff;
+        }
+        .form-group .input-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+            color: #2196F3;
+            opacity: 0.85;
+            pointer-events: none;
         }
         .login-btn {
             width: 100%;
-            padding: 0.8rem;
-            background: #4CAF50;
+            padding: 0.95rem;
+            background: linear-gradient(90deg, #2196F3 0%, #21CBF3 100%);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 1rem;
-            transition: background 0.3s;
+            font-size: 1.1rem;
+            font-weight: 500;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 8px rgba(33,150,243,0.10);
+            transition: background 0.3s, transform 0.1s;
+            margin-top: 0.5rem;
         }
         .login-btn:hover {
-            background: #45a049;
+            background: linear-gradient(90deg, #21CBF3 0%, #2196F3 100%);
+            transform: translateY(-2px) scale(1.03);
         }
         .error-message {
             color: #f44336;
             text-align: center;
             margin-top: 1rem;
             display: none;
+            font-size: 1rem;
+        }
+        .login-tip {
+            color: #888;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            margin-top: -0.7rem;
+            text-align: left;
+        }
+        @media (max-width: 600px) {
+            .login-form-box { width: 98vw; padding: 18px 4vw 18px 4vw; }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <h2 class="login-title">文件管理系统</h2>
+    <div class="login-form-box">
+        <div class="login-title">FileM文件管理平台</div>
         <form id="loginForm">
             <div class="form-group">
-                <label for="username">用户名</label>
-                <input type="text" id="username" name="username" required>
+                <span class="input-icon">👤</span>
+                <input type="text" id="username" name="username" placeholder="用户名" required>
             </div>
             <div class="form-group">
-                <label for="password">密码</label>
-                <input type="password" id="password" name="password" required>
+                <span class="input-icon">🔒</span>
+                <input type="password" id="password" name="password" placeholder="密码" required>
             </div>
+            <div class="login-tip">如果您忘记了用户名或密码，请咨询系统管理员</div>
             <button type="submit" class="login-btn">登录</button>
             <div id="errorMessage" class="error-message"></div>
         </form>
