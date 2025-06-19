@@ -267,7 +267,10 @@
         </div>
         <div class="actions">
             <button class="btn btn-primary" onclick="showCreateFolderDialog()">新建文件夹</button>
-            <button class="btn btn-primary" onclick="showUploadDialog()">上传文件</button>
+            <button class="btn btn-primary" onclick="showFileUpload()">上传文件</button>
+            <input type="file" id="fileInputFile" multiple style="display:none" onchange="uploadFile('file')">
+            <button class="btn btn-primary" onclick="showFolderUpload()">上传文件夹</button>
+            <input type="file" id="fileInputFolder" multiple webkitdirectory style="display:none" onchange="uploadFile('folder')">
             <button class="btn btn-danger" onclick="logout()">退出登录</button>
         </div>
     </div>
@@ -308,7 +311,8 @@
     <div class="upload-container" id="uploadContainer">
         <div class="upload-box">
             <h3>上传文件</h3>
-            <input type="file" id="fileInput">
+            <input type="file" id="fileInput" multiple webkitdirectory>
+            <!-- 这样既可以选择单个/多个文件，也可以选择整个文件夹 -->
             <div class="actions">
                 <button class="btn btn-primary" onclick="uploadFile()">上传</button>
                 <button class="btn" onclick="hideUploadDialog()">取消</button>
@@ -340,6 +344,7 @@
         </div>
     </div>
 
+    <script src="config.js"></script>
     <script>
         let currentPath = '';
         let sortDirection = 'asc'; // 'asc' 或 'desc'
@@ -365,7 +370,7 @@
                 // 确保路径格式正确
                 const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
                 const encodedPath = encodeURIComponent(normalizedPath);
-                const response = await fetch(`http://139.224.196.117:5001/api/files?path=${encodedPath}&page=${currentPage}&per_page=${perPage}`, {
+                const response = await fetch(`${API_BASE_URL}/api/files?path=${encodedPath}&page=${currentPage}&per_page=${perPage}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -443,7 +448,7 @@
                 document.body.appendChild(iframe);
 
                 // 设置 iframe 的 src，包含 token
-                iframe.src = `http://139.224.196.117:5001/api/files/download?path=${path}`;
+                iframe.src = `${API_BASE_URL}/api/files/download?path=${path}`;
 
                 // 添加 token 到请求头
                 const xhr = new XMLHttpRequest();
@@ -488,7 +493,7 @@
                 try {
                     const token = checkAuth();
                     const path = currentPath ? `${currentPath}/${name}` : name;
-                    const response = await fetch(`http://139.224.196.117:5001/api/files?path=${encodeURIComponent(path)}`, {
+                    const response = await fetch(`${API_BASE_URL}/api/files?path=${encodeURIComponent(path)}`, {
                         headers: {
                             'Authorization': `Bearer ${token}`
                         }
@@ -514,7 +519,7 @@
             const token = checkAuth();
             try {
                 const path = currentPath ? `${currentPath}/${name}` : name;
-                const response = await fetch(`http://139.224.196.117:5001/api/files?path=${encodeURIComponent(path)}`, {
+                const response = await fetch(`${API_BASE_URL}/api/files?path=${encodeURIComponent(path)}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -545,38 +550,43 @@
         }
 
         // 上传文件
-        async function uploadFile() {
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
-            if (!file) {
+        async function uploadFile(type) {
+            let fileInput = type === 'file' ? document.getElementById('fileInputFile') : document.getElementById('fileInputFolder');
+            const files = fileInput.files;
+            if (!files || files.length === 0) {
                 alert('请选择文件');
                 return;
             }
-
             const token = checkAuth();
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('path', currentPath);
-
-            try {
-                const response = await fetch('http://139.224.196.117:5001/api/files', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: formData
-                });
-
-                if (response.ok) {
-                    hideUploadDialog();
-                    loadFiles(currentPath);
-                    fileInput.value = '';
-                } else {
-                    alert('上传失败');
+            let successCount = 0, failCount = 0;
+            for (let i = 0; i < files.length; i++) {
+                const formData = new FormData();
+                formData.append('file', files[i]);
+                formData.append('path', currentPath);
+                if (files[i].webkitRelativePath) {
+                    formData.append('relative_path', files[i].webkitRelativePath);
                 }
-            } catch (error) {
-                alert('服务器连接失败');
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/files`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: formData
+                    });
+                    if (response.ok) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                } catch (error) {
+                    failCount++;
+                }
             }
+            hideUploadDialog();
+            loadFiles(currentPath);
+            fileInput.value = '';
+            alert(`上传完成，成功：${successCount}，失败：${failCount}`);
         }
 
         // 格式化文件大小
@@ -636,7 +646,7 @@
                 formData.append('folder_name', folderName);
                 formData.append('path', currentPath);
 
-                const response = await fetch('http://139.224.196.117:5001/api/files', {
+                const response = await fetch(`${API_BASE_URL}/api/files`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -683,7 +693,7 @@
             }
 
             try {
-                const response = await fetch('http://139.224.196.117:5001/api/files/rename', {
+                const response = await fetch(`${API_BASE_URL}/api/files/rename`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -731,7 +741,7 @@
             }
 
             try {
-                const response = await fetch(`http://139.224.196.117:5001/api/files/search?query=${encodeURIComponent(query)}`, {
+                const response = await fetch(`${API_BASE_URL}/api/files/search?query=${encodeURIComponent(query)}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -870,6 +880,14 @@
                 loadFiles('');
             }
         });
+
+        function showFileUpload() {
+            document.getElementById('fileInputFile').click();
+        }
+
+        function showFolderUpload() {
+            document.getElementById('fileInputFolder').click();
+        }
     </script>
 </body>
 </html>

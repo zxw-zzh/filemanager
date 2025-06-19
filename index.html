@@ -81,6 +81,7 @@
         </form>
     </div>
 
+    <script src="config.js"></script>
     <script>
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -89,7 +90,7 @@
             const errorMessage = document.getElementById('errorMessage');
 
             try {
-                const response = await fetch('http://139.224.196.117:5001/api/login', {
+                const response = await fetch(`${API_BASE_URL}/api/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

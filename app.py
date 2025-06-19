@@ -6,6 +6,7 @@ import datetime
 from functools import wraps
 import shutil
 import urllib.parse
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 # 配置CORS，允许所有来源的请求
@@ -17,9 +18,11 @@ CORS(app, resources={
     }
 })
 
+load_dotenv()  # 读取 .env 文件
+
 # 配置
 SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key')
-UPLOAD_FOLDER = os.path.abspath("app")
+UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', os.path.abspath("app"))
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # 确保上传目录存在
@@ -133,7 +136,8 @@ def list_files():
 @app.route('/api/files', methods=['POST'])
 @token_required
 def upload_file():
-    if 'file' not in request.files:
+    # 支持批量上传：遍历所有request.files
+    if not request.files:
         # 检查是否是创建文件夹请求
         folder_name = request.form.get('folder_name')
         if folder_name:
@@ -154,19 +158,32 @@ def upload_file():
 
         return jsonify({'message': '没有文件'}), 400
 
-    file = request.files['file']
     path = request.form.get('path', '')
-
-    if file.filename == '':
-        return jsonify({'message': '没有选择文件'}), 400
-
-    full_path = safe_path_join(app.config['UPLOAD_FOLDER'], path)
-    if not full_path:
+    base_path = safe_path_join(app.config['UPLOAD_FOLDER'], path)
+    if not base_path:
         return jsonify({'message': '无效的路径'}), 400
+    os.makedirs(base_path, exist_ok=True)
 
-    os.makedirs(full_path, exist_ok=True)
-    file.save(os.path.join(full_path, file.filename))
-    return jsonify({'message': '文件上传成功'})
+    results = []
+    for file_key in request.files:
+        file = request.files[file_key]
+        if file.filename == '':
+            results.append({'filename': '', 'message': '没有选择文件'})
+            continue
+        # 支持相对路径还原文件夹结构
+        relative_path = request.form.get('relative_path', file.filename)
+        # 只取文件名时兼容老前端
+        save_path = os.path.join(base_path, relative_path) if relative_path else os.path.join(base_path, file.filename)
+        save_dir = os.path.dirname(save_path)
+        try:
+            os.makedirs(save_dir, exist_ok=True)
+            file.save(save_path)
+            results.append({'filename': relative_path, 'message': '文件上传成功'})
+        except Exception as e:
+            results.append({'filename': relative_path, 'message': f'上传失败: {str(e)}'})
+    if len(results) == 1:
+        return jsonify({'message': results[0]['message']})
+    return jsonify({'results': results})
 
 @app.route('/api/files', methods=['DELETE'])
 @token_required
@@ -284,4 +301,7 @@ def search_files():
     return jsonify(results)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001, debug=False)
+    host = os.environ.get('FLASK_HOST', '0.0.0.0')
+    port = int(os.environ.get('FLASK_PORT', 5002))
+    debug = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(host=host, port=port, debug=debug)
