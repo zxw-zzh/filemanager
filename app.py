@@ -23,6 +23,8 @@ load_dotenv()  # 读取 .env 文件
 # 配置
 SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key')
 UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', os.path.abspath("app"))
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin@01')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # 确保上传目录存在
@@ -74,7 +76,7 @@ def login():
     username = data.get('username')
     password = data.get('password')
 
-    if username == "admin" and password == "admin@01":
+    if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
         token = jwt.encode({
             'user': username,
             'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
