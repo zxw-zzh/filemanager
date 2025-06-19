@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件管理系统 - 主页</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .breadcrumb a {
+            color: #2196F3;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .btn-primary {
+            background: #2196F3;
+            color: white;
+        }
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .file-list {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .file-list-header {
+            display: grid;
+            grid-template-columns: 40px 2fr 1fr 1fr 200px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+            font-weight: bold;
+        }
+        .file-list-header div {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .file-item {
+            display: grid;
+            grid-template-columns: 40px 2fr 1fr 1fr 200px;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+        }
+        .file-item:hover {
+            background: #f8f9fa;
+        }
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        .file-icon {
+            color: #666;
+            font-size: 20px;
+        }
+        .file-name {
+            color: #333;
+            text-decoration: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .file-name:hover {
+            color: #2196F3;
+        }
+        .file-size {
+            color: #666;
+            white-space: nowrap;
+        }
+        .file-date {
+            color: #666;
+            white-space: nowrap;
+        }
+        .file-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        .file-actions button {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        .upload-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        .upload-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+        }
+        .upload-box h3 {
+            margin-top: 0;
+        }
+        .upload-box input[type="file"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+        .upload-box .actions {
+            justify-content: flex-end;
+        }
+        .search-box {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .dialog {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        .dialog-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+        }
+        .dialog-content h3 {
+            margin-top: 0;
+        }
+        .dialog-content input {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .dialog-content .actions {
+            justify-content: flex-end;
+        }
+        .file-actions button {
+            margin-left: 4px;
+        }
+        .sort-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+            padding: 0 4px;
+            font-size: 12px;
+        }
+        .sort-btn:hover {
+            color: #2196F3;
+        }
+        .sort-btn.active {
+            color: #2196F3;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            gap: 8px;
+        }
+        .pagination button {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            background: white;
+            color: #666;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .pagination button:disabled {
+            background: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+        }
+        .pagination button:hover:not(:disabled) {
+            border-color: #2196F3;
+            color: #2196F3;
+        }
+        .pagination select {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+        .pagination .page-info {
+            color: #666;
+            font-size: 12px;
+            margin: 0 8px;
+        }
+        .pagination .page-input {
+            width: 40px;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="breadcrumb" id="breadcrumb">
+            <a href="#" data-path="">根目录</a>
+        </div>
+        <div class="actions">
+            <button class="btn btn-primary" onclick="showCreateFolderDialog()">新建文件夹</button>
+            <button class="btn btn-primary" onclick="showUploadDialog()">上传文件</button>
+            <button class="btn btn-danger" onclick="logout()">退出登录</button>
+        </div>
+    </div>
+
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="搜索文件..." onkeyup="handleSearch(event)">
+        <button class="btn btn-primary" onclick="searchFiles()">搜索</button>
+    </div>
+
+    <div class="file-list" id="fileList">
+        <div class="file-list-header">
+            <div></div>
+            <div>
+                文件名
+                <button class="sort-btn" onclick="sortFiles('name')" id="sortNameBtn">↕</button>
+            </div>
+            <div>大小</div>
+            <div>修改时间</div>
+            <div>操作</div>
+        </div>
+        <div id="fileListContent"></div>
+    </div>
+
+    <div class="pagination">
+        <button onclick="goToPage(1)" id="firstPage" title="首页">«</button>
+        <button onclick="changePage(-1)" id="prevPage" title="上一页">‹</button>
+        <span class="page-info">第 <input type="number" class="page-input" id="currentPageInput" min="1" value="1"> 页 / 共 <span id="totalPages">1</span> 页</span>
+        <button onclick="changePage(1)" id="nextPage" title="下一页">›</button>
+        <button onclick="goToLastPage()" id="lastPage" title="末页">»</button>
+        <select id="perPage" onchange="changePerPage()">
+            <option value="10">10条/页</option>
+            <option value="20">20条/页</option>
+            <option value="50">50条/页</option>
+            <option value="100">100条/页</option>
+        </select>
+    </div>
+
+    <div class="upload-container" id="uploadContainer">
+        <div class="upload-box">
+            <h3>上传文件</h3>
+            <input type="file" id="fileInput">
+            <div class="actions">
+                <button class="btn btn-primary" onclick="uploadFile()">上传</button>
+                <button class="btn" onclick="hideUploadDialog()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建文件夹对话框 -->
+    <div class="dialog" id="createFolderDialog">
+        <div class="dialog-content">
+            <h3>新建文件夹</h3>
+            <input type="text" id="folderNameInput" placeholder="请输入文件夹名称">
+            <div class="actions">
+                <button class="btn btn-primary" onclick="createFolder()">创建</button>
+                <button class="btn" onclick="hideCreateFolderDialog()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 重命名对话框 -->
+    <div class="dialog" id="renameDialog">
+        <div class="dialog-content">
+            <h3>重命名</h3>
+            <input type="text" id="newNameInput" placeholder="请输入新名称">
+            <div class="actions">
+                <button class="btn btn-primary" onclick="renameFile()">确定</button>
+                <button class="btn" onclick="hideRenameDialog()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPath = '';
+        let sortDirection = 'asc'; // 'asc' 或 'desc'
+        let currentPage = 1;
+        let perPage = 10;
+        let totalPages = 1;
+        let totalItems = 0;
+
+        // 检查登录状态
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'index.html';
+                return null;
+            }
+            return token;
+        }
+
+        // 加载文件列表
+        async function loadFiles(path = '') {
+            const token = checkAuth();
+            try {
+                // 确保路径格式正确
+                const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+                const encodedPath = encodeURIComponent(normalizedPath);
+                const response = await fetch(`http://139.224.196.117:5001/api/files?path=${encodedPath}&page=${currentPage}&per_page=${perPage}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.items) {
+                        displayFiles(data.items);
+                        updatePagination(data);
+                    } else {
+                        displayFiles(data); // 兼容旧版本API
+                        updatePagination({
+                            total: data.length,
+                            total_pages: Math.ceil(data.length / perPage),
+                            page: currentPage,
+                            per_page: perPage
+                        });
+                    }
+                    updateBreadcrumb(normalizedPath);
+                    // 更新当前路径
+                    currentPath = normalizedPath;
+                } else {
+                    alert('加载文件列表失败');
+                }
+            } catch (error) {
+                alert('服务器连接失败');
+            }
+        }
+
+        // 显示文件列表
+        function displayFiles(files) {
+            const fileList = document.getElementById('fileListContent');
+            fileList.innerHTML = files.map(file => `
+                <div class="file-item">
+                    <div class="file-icon">${file.is_dir ? '📁' : '📄'}</div>
+                    <a href="#" class="file-name" onclick="handleFileClick('${file.name}', ${file.is_dir})">${file.name}</a>
+                    <div class="file-size">${formatSize(file.size)}</div>
+                    <div class="file-date">${formatDate(file.date)}</div>
+                    <div class="file-actions">
+                        <button class="btn btn-primary btn-small" onclick="showRenameDialog('${file.name}')">重命名</button>
+                        ${!file.is_dir ? `
+                            <button class="btn btn-primary btn-small" onclick="downloadFile('${file.name}')">下载</button>
+                        ` : ''}
+                        <button class="btn btn-danger btn-small" onclick="deleteFile('${file.name}', ${file.is_dir})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+
+            // 重置排序状态
+            const sortBtn = document.getElementById('sortNameBtn');
+            sortBtn.textContent = '↕';
+            sortBtn.classList.remove('active');
+        }
+
+        // 处理文件点击
+        function handleFileClick(name, isDir) {
+            if (isDir) {
+                // 修复路径拼接，确保路径格式正确
+                const newPath = currentPath ? `${currentPath}/${name}` : name;
+                currentPage = 1; // 重置页码
+                loadFiles(newPath);
+            }
+        }
+
+        // 下载文件
+        async function downloadFile(name) {
+            const token = checkAuth();
+            const path = currentPath ? `${currentPath}/${name}` : name;
+
+            try {
+                // 创建一个隐藏的 iframe 来处理下载
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+
+                // 设置 iframe 的 src，包含 token
+                iframe.src = `http://139.224.196.117:5001/api/files/download?path=${path}`;
+
+                // 添加 token 到请求头
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', iframe.src, true);
+                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                xhr.responseType = 'blob';
+
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        // 创建下载链接
+                        const blob = xhr.response;
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = name;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                    } else {
+                        alert('下载失败：' + xhr.statusText);
+                    }
+                    // 清理 iframe
+                    document.body.removeChild(iframe);
+                };
+
+                xhr.onerror = function() {
+                    alert('下载失败，请检查网络连接');
+                    document.body.removeChild(iframe);
+                };
+
+                xhr.send();
+            } catch (error) {
+                alert('下载失败：' + error.message);
+            }
+        }
+
+        // 删除文件或文件夹
+        async function deleteFile(name, isDir) {
+            if (isDir) {
+                // 检查文件夹是否为空
+                try {
+                    const token = checkAuth();
+                    const path = currentPath ? `${currentPath}/${name}` : name;
+                    const response = await fetch(`http://139.224.196.117:5001/api/files?path=${encodeURIComponent(path)}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const files = await response.json();
+                        if (files.length > 0) {
+                            alert('文件夹不为空，无法删除');
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    alert('检查文件夹失败');
+                    return;
+                }
+            }
+
+            if (!confirm(`确定要删除${isDir ? '文件夹' : '文件'} "${name}" 吗？`)) {
+                return;
+            }
+
+            const token = checkAuth();
+            try {
+                const path = currentPath ? `${currentPath}/${name}` : name;
+                const response = await fetch(`http://139.224.196.117:5001/api/files?path=${encodeURIComponent(path)}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('删除成功');
+                    loadFiles(currentPath);
+                } else {
+                    alert(data.message || '删除失败');
+                }
+            } catch (error) {
+                alert('删除失败');
+            }
+        }
+
+        // 显示上传对话框
+        function showUploadDialog() {
+            document.getElementById('uploadContainer').style.display = 'flex';
+        }
+
+        // 隐藏上传对话框
+        function hideUploadDialog() {
+            document.getElementById('uploadContainer').style.display = 'none';
+        }
+
+        // 上传文件
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('请选择文件');
+                return;
+            }
+
+            const token = checkAuth();
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('path', currentPath);
+
+            try {
+                const response = await fetch('http://139.224.196.117:5001/api/files', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    hideUploadDialog();
+                    loadFiles(currentPath);
+                    fileInput.value = '';
+                } else {
+                    alert('上传失败');
+                }
+            } catch (error) {
+                alert('服务器连接失败');
+            }
+        }
+
+        // 格式化文件大小
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 格式化文件日期
+        function formatDate(timestamp) {
+            if (!timestamp) return '-';
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+        }
+
+        // 退出登录
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // 显示新建文件夹对话框
+        function showCreateFolderDialog() {
+            document.getElementById('createFolderDialog').style.display = 'flex';
+            document.getElementById('folderNameInput').value = '';
+            document.getElementById('folderNameInput').focus();
+        }
+
+        // 隐藏新建文件夹对话框
+        function hideCreateFolderDialog() {
+            document.getElementById('createFolderDialog').style.display = 'none';
+        }
+
+        // 创建文件夹
+        async function createFolder() {
+            const token = checkAuth();
+            const folderName = document.getElementById('folderNameInput').value.trim();
+
+            if (!folderName) {
+                alert('请输入文件夹名称');
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('folder_name', folderName);
+                formData.append('path', currentPath);
+
+                const response = await fetch('http://139.224.196.117:5001/api/files', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('文件夹创建成功');
+                    hideCreateFolderDialog();
+                    loadFiles(currentPath);
+                } else {
+                    alert(data.message || '创建失败');
+                }
+            } catch (error) {
+                alert('创建失败');
+            }
+        }
+
+        // 显示重命名对话框
+        function showRenameDialog(oldName) {
+            document.getElementById('renameDialog').style.display = 'flex';
+            document.getElementById('newNameInput').value = oldName;
+            document.getElementById('newNameInput').focus();
+            document.getElementById('newNameInput').dataset.oldName = oldName;
+        }
+
+        // 隐藏重命名对话框
+        function hideRenameDialog() {
+            document.getElementById('renameDialog').style.display = 'none';
+        }
+
+        // 重命名文件
+        async function renameFile() {
+            const token = checkAuth();
+            const oldName = document.getElementById('newNameInput').dataset.oldName;
+            const newName = document.getElementById('newNameInput').value.trim();
+
+            if (!newName) {
+                alert('请输入新名称');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://139.224.196.117:5001/api/files/rename', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        path: currentPath ? `${currentPath}/${oldName}` : oldName,
+                        new_name: newName
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('重命名成功');
+                    hideRenameDialog();
+                    loadFiles(currentPath);
+                } else {
+                    alert(data.message || '重命名失败');
+                }
+            } catch (error) {
+                alert('重命名失败');
+            }
+        }
+
+        // 处理搜索输入
+        let searchTimeout;
+        function handleSearch(event) {
+            if (event.key === 'Enter') {
+                searchFiles();
+            } else {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(searchFiles, 500);
+            }
+        }
+
+        // 搜索文件
+        async function searchFiles() {
+            const token = checkAuth();
+            const query = document.getElementById('searchInput').value.trim();
+
+            if (!query) {
+                loadFiles(currentPath);
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://139.224.196.117:5001/api/files/search?query=${encodeURIComponent(query)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const files = await response.json();
+                    displayFiles(files);
+                } else {
+                    alert('搜索失败');
+                }
+            } catch (error) {
+                alert('搜索失败');
+            }
+        }
+
+        function sortFiles(field) {
+            const fileList = document.getElementById('fileListContent');
+            const files = Array.from(fileList.children);
+
+            // 更新排序方向
+            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+
+            // 更新排序按钮样式
+            const sortBtn = document.getElementById('sortNameBtn');
+            sortBtn.textContent = sortDirection === 'asc' ? '↑' : '↓';
+            sortBtn.classList.add('active');
+
+            // 排序文件
+            files.sort((a, b) => {
+                const aValue = a.querySelector('.file-name').textContent;
+                const bValue = b.querySelector('.file-name').textContent;
+
+                // 文件夹始终排在前面
+                const aIsDir = a.querySelector('.file-icon').textContent === '📁';
+                const bIsDir = b.querySelector('.file-icon').textContent === '📁';
+
+                if (aIsDir && !bIsDir) return -1;
+                if (!aIsDir && bIsDir) return 1;
+
+                // 使用 localeCompare 进行字符串比较，支持中文
+                const comparison = aValue.localeCompare(bValue, 'zh-CN');
+                return sortDirection === 'asc' ? comparison : -comparison;
+            });
+
+            // 重新添加排序后的文件
+            files.forEach(file => fileList.appendChild(file));
+        }
+
+        function updatePagination(data) {
+            totalItems = data.total;
+            totalPages = data.total_pages;
+            currentPage = data.page;
+            perPage = data.per_page;
+
+            // 更新分页控件状态
+            document.getElementById('currentPageInput').value = currentPage;
+            document.getElementById('totalPages').textContent = totalPages;
+            document.getElementById('perPage').value = perPage;
+
+            // 更新按钮状态
+            document.getElementById('firstPage').disabled = currentPage <= 1;
+            document.getElementById('prevPage').disabled = currentPage <= 1;
+            document.getElementById('nextPage').disabled = currentPage >= totalPages;
+            document.getElementById('lastPage').disabled = currentPage >= totalPages;
+        }
+
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                loadFiles(currentPath);
+            }
+        }
+
+        function goToPage(page) {
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                loadFiles(currentPath);
+            }
+        }
+
+        function goToLastPage() {
+            if (totalPages > 0) {
+                currentPage = totalPages;
+                loadFiles(currentPath);
+            }
+        }
+
+        function changePerPage() {
+            perPage = parseInt(document.getElementById('perPage').value);
+            currentPage = 1;
+            loadFiles(currentPath);
+        }
+
+        // 添加页码输入框的事件监听
+        document.getElementById('currentPageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const page = parseInt(this.value);
+                if (page >= 1 && page <= totalPages) {
+                    goToPage(page);
+                } else {
+                    this.value = currentPage;
+                }
+            }
+        });
+
+        // 更新面包屑导航
+        function updateBreadcrumb(path) {
+            const breadcrumb = document.getElementById('breadcrumb');
+            const parts = path.split('/').filter(Boolean);
+            let html = '<a href="#" data-path="">根目录</a>';
+            let currentPath = '';
+
+            parts.forEach(part => {
+                currentPath += '/' + part;
+                html += ` / <a href="#" data-path="${currentPath}">${part}</a>`;
+            });
+
+            breadcrumb.innerHTML = html;
+
+            // 添加面包屑点击事件
+            breadcrumb.querySelectorAll('a').forEach(a => {
+                a.onclick = (e) => {
+                    e.preventDefault();
+                    const targetPath = a.dataset.path;
+                    loadFiles(targetPath);
+                };
+            });
+        }
+
+        // 初始加载
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = checkAuth();
+            if (token) {
+                loadFiles('');
+            }
+        });
+    </script>
+</body>
+</html>
