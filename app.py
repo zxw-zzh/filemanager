@@ -8,7 +8,9 @@ import shutil
 import urllib.parse
 from dotenv import load_dotenv
 
-app = Flask(__name__)
+# 静态文件模式
+app = Flask(__name__, static_folder='.', static_url_path='')
+
 # 配置CORS，允许所有来源的请求
 CORS(app, resources={
     r"/api/*": {
@@ -332,8 +334,12 @@ def move_file():
     except Exception as e:
         return jsonify({'message': '移动失败: ' + str(e)}), 500
 
+@app.route('/')
+def root():
+    return app.send_static_file('index.html')
+
 if __name__ == '__main__':
     host = os.environ.get('FLASK_HOST', '0.0.0.0')
-    port = int(os.environ.get('FLASK_PORT', 5002))
+    port = int(os.environ.get('FLASK_PORT', 5000))
     debug = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     app.run(host=host, port=port, debug=debug)

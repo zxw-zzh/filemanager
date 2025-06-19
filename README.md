@@ -83,3 +83,45 @@ favicon.ico           # 网站图标
 ---
 
 如需更详细的说明或遇到问题，欢迎提Issue或联系作者！
+
+---
+
+## Docker一键部署
+
+### 1. 构建镜像（推荐国内pip加速）
+
+```bash
+# 推荐先用清华源加速依赖安装
+# Dockerfile中已内置：-i https://pypi.tuna.tsinghua.edu.cn/simple
+
+docker build -t flask-filemanager .
+```
+
+### 2. 运行容器（推荐.env注入，安全灵活）
+
+```bash
+# 推荐用--env-file注入配置，镜像无需包含.env
+# -p 5000:5000 映射端口
+# --env-file .env 注入环境变量
+
+docker run -d --name filemanager \
+  --env-file .env \
+  -p 5000:5000 \
+  flask-filemanager
+```
+
+### 3. 数据持久化（可选，挂载本地目录）
+
+```bash
+# 挂载本地目录到容器内/app/app，实现文件持久化
+
+docker run -d --name filemanager \
+  --env-file .env \
+  -p 5000:5000 \
+  -v /your/local/dir:/app/app \
+  flask-filemanager
+```
+
+### 4. 访问系统
+
+浏览器访问：http://服务器IP:5000/
