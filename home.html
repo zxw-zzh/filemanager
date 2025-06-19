@@ -258,6 +258,47 @@
             text-align: center;
             font-size: 12px;
         }
+        .dir-tree-ul {
+            list-style: none;
+            padding-left: 16px;
+            margin: 0;
+        }
+        .dir-tree-li {
+            border-radius: 4px;
+            user-select: none;
+            transition: background 0.2s;
+            cursor: pointer;
+            padding: 2px 4px 2px 0;
+        }
+        .dir-tree-li-content {
+            display: flex;
+            align-items: center;
+        }
+        .dir-tree-li:hover {
+            background: #f0f7ff;
+        }
+        .dir-tree-li.selected {
+            background: #e6f7ff;
+        }
+        .dir-tree-icon {
+            width: 16px;
+            display: inline-block;
+            text-align: center;
+            margin-right: 4px;
+            color: #2196F3;
+        }
+        .dir-tree-arrow {
+            width: 12px;
+            display: inline-block;
+            text-align: center;
+            margin-right: 2px;
+            color: #888;
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+        .dir-tree-arrow.open {
+            transform: rotate(90deg);
+        }
     </style>
 </head>
 <body>
@@ -344,6 +385,21 @@
         </div>
     </div>
 
+    <!-- 移动对话框（目录树） -->
+    <div class="dialog" id="moveDialog">
+        <div class="dialog-content">
+            <h3>选择目标目录</h3>
+            <div id="dirTreeContainer" style="max-height:300px;overflow:auto;border:1px solid #eee;padding:8px 4px 8px 8px;background:#fafbfc;margin-bottom:12px;"></div>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="moveFileConfirm()">确定</button>
+                <button class="btn" onclick="hideMoveDialog()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 消息组件 -->
+    <div id="toast" style="display:none;position:fixed;top:30px;left:50%;transform:translateX(-50%);background:rgba(60,60,60,0.95);color:#fff;padding:12px 32px;border-radius:6px;z-index:9999;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,0.15);transition:opacity 0.3s;opacity:0;pointer-events:none;max-width:80vw;word-break:break-all;"></div>
+
     <script src="config.js"></script>
     <script>
         let currentPath = '';
@@ -352,6 +408,9 @@
         let perPage = 10;
         let totalPages = 1;
         let totalItems = 0;
+        let moveFileName = '';
+        let moveIsDir = false;
+        let moveTargetPath = '';
 
         // 检查登录状态
         function checkAuth() {
@@ -394,10 +453,10 @@
                     // 更新当前路径
                     currentPath = normalizedPath;
                 } else {
-                    alert('加载文件列表失败');
+                    showToast('加载文件列表失败');
                 }
             } catch (error) {
-                alert('服务器连接失败');
+                showToast('服务器连接失败');
             }
         }
 
@@ -412,6 +471,7 @@
                     <div class="file-date">${formatDate(file.date)}</div>
                     <div class="file-actions">
                         <button class="btn btn-primary btn-small" onclick="showRenameDialog('${file.name}')">重命名</button>
+                        <button class="btn btn-primary btn-small" onclick="showMoveDialog('${file.name}', ${file.is_dir})">移动</button>
                         ${!file.is_dir ? `
                             <button class="btn btn-primary btn-small" onclick="downloadFile('${file.name}')">下载</button>
                         ` : ''}
@@ -469,20 +529,20 @@
                         window.URL.revokeObjectURL(url);
                         document.body.removeChild(a);
                     } else {
-                        alert('下载失败：' + xhr.statusText);
+                        showToast('下载失败：' + xhr.statusText);
                     }
                     // 清理 iframe
                     document.body.removeChild(iframe);
                 };
 
                 xhr.onerror = function() {
-                    alert('下载失败，请检查网络连接');
+                    showToast('下载失败，请检查网络连接');
                     document.body.removeChild(iframe);
                 };
 
                 xhr.send();
             } catch (error) {
-                alert('下载失败：' + error.message);
+                showToast('下载失败：' + error.message);
             }
         }
 
@@ -502,12 +562,12 @@
                     if (response.ok) {
                         const files = await response.json();
                         if (files.length > 0) {
-                            alert('文件夹不为空，无法删除');
+                            showToast('文件夹不为空，无法删除');
                             return;
                         }
                     }
                 } catch (error) {
-                    alert('检查文件夹失败');
+                    showToast('检查文件夹失败');
                     return;
                 }
             }
@@ -529,13 +589,13 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    alert('删除成功');
+                    showToast('删除成功');
                     loadFiles(currentPath);
                 } else {
-                    alert(data.message || '删除失败');
+                    showToast(data.message || '删除失败');
                 }
             } catch (error) {
-                alert('删除失败');
+                showToast('删除失败');
             }
         }
 
@@ -554,7 +614,7 @@
             let fileInput = type === 'file' ? document.getElementById('fileInputFile') : document.getElementById('fileInputFolder');
             const files = fileInput.files;
             if (!files || files.length === 0) {
-                alert('请选择文件');
+                showToast('请选择文件');
                 return;
             }
             const token = checkAuth();
@@ -586,7 +646,7 @@
             hideUploadDialog();
             loadFiles(currentPath);
             fileInput.value = '';
-            alert(`上传完成，成功：${successCount}，失败：${failCount}`);
+            showToast('上传完成，成功：'+successCount+'，失败：'+failCount);
         }
 
         // 格式化文件大小
@@ -637,7 +697,7 @@
             const folderName = document.getElementById('folderNameInput').value.trim();
 
             if (!folderName) {
-                alert('请输入文件夹名称');
+                showToast('请输入文件夹名称');
                 return;
             }
 
@@ -657,14 +717,14 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    alert('文件夹创建成功');
+                    showToast('文件夹创建成功');
                     hideCreateFolderDialog();
                     loadFiles(currentPath);
                 } else {
-                    alert(data.message || '创建失败');
+                    showToast(data.message || '创建失败');
                 }
             } catch (error) {
-                alert('创建失败');
+                showToast('创建失败');
             }
         }
 
@@ -688,7 +748,7 @@
             const newName = document.getElementById('newNameInput').value.trim();
 
             if (!newName) {
-                alert('请输入新名称');
+                showToast('请输入新名称');
                 return;
             }
 
@@ -708,14 +768,14 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    alert('重命名成功');
+                    showToast('重命名成功');
                     hideRenameDialog();
                     loadFiles(currentPath);
                 } else {
-                    alert(data.message || '重命名失败');
+                    showToast(data.message || '重命名失败');
                 }
             } catch (error) {
-                alert('重命名失败');
+                showToast('重命名失败');
             }
         }
 
@@ -751,10 +811,10 @@
                     const files = await response.json();
                     displayFiles(files);
                 } else {
-                    alert('搜索失败');
+                    showToast('搜索失败');
                 }
             } catch (error) {
-                alert('搜索失败');
+                showToast('搜索失败');
             }
         }
 
@@ -887,6 +947,164 @@
 
         function showFolderUpload() {
             document.getElementById('fileInputFolder').click();
+        }
+
+        function showToast(msg, duration=2000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => { toast.style.display = 'none'; }, 300);
+            }, duration);
+        }
+
+        function showMoveDialog(name, isDir) {
+            moveFileName = name;
+            moveIsDir = isDir;
+            moveTargetPath = '';
+            document.getElementById('moveDialog').style.display = 'flex';
+            renderDirTree('');
+        }
+
+        function hideMoveDialog() {
+            document.getElementById('moveDialog').style.display = 'none';
+        }
+
+        async function renderDirTree(rootPath) {
+            const token = checkAuth();
+            const container = document.getElementById('dirTreeContainer');
+            container.innerHTML = '加载中...';
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/files?path=${encodeURIComponent(rootPath)}&per_page=1000`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    container.innerHTML = '';
+                    const tree = buildDirTree(data.items, rootPath);
+                    container.appendChild(tree);
+                } else {
+                    container.innerHTML = '加载失败';
+                }
+            } catch (e) {
+                container.innerHTML = '加载失败';
+            }
+        }
+
+        function buildDirTree(items, parentPath) {
+            const ul = document.createElement('ul');
+            ul.className = 'dir-tree-ul';
+            items.filter(item => item.is_dir).forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'dir-tree-li';
+                const content = document.createElement('div');
+                content.className = 'dir-tree-li-content';
+                const fullPath = parentPath ? parentPath + '/' + item.name : item.name;
+                // 箭头
+                const arrow = document.createElement('span');
+                arrow.className = 'dir-tree-arrow';
+                arrow.innerHTML = '&#9654;'; // ▶
+                // 文件夹图标
+                const icon = document.createElement('span');
+                icon.className = 'dir-tree-icon';
+                icon.textContent = '📁';
+                // 文件夹名
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = item.name;
+                // 结构
+                content.appendChild(arrow);
+                content.appendChild(icon);
+                content.appendChild(nameSpan);
+                li.appendChild(content);
+                // 展开/收起子目录
+                let opened = false;
+                let subUl = null;
+                arrow.onclick = (e) => {
+                    e.stopPropagation();
+                    if (opened) {
+                        if (subUl && li.contains(subUl)) li.removeChild(subUl);
+                        arrow.classList.remove('open');
+                        opened = false;
+                    } else {
+                        // 防止重复点击
+                        if (arrow.classList.contains('loading')) return;
+                        arrow.classList.add('loading');
+                        // 如果已经有ul，直接展开，不再fetch
+                        if (subUl && li.contains(subUl)) {
+                            li.appendChild(subUl);
+                            arrow.classList.add('open');
+                            opened = true;
+                            return;
+                        }
+                        fetchDirChildren(fullPath).then(ul2 => {
+                            subUl = ul2;
+                            li.appendChild(subUl); // 子ul嵌套在父li下
+                            arrow.classList.add('open');
+                            opened = true;
+                        });
+                    }
+                };
+                // 双击文件夹名也可展开
+                nameSpan.ondblclick = arrow.onclick;
+                // 只在li上绑定选中事件，判断箭头
+                li.onclick = (e) => {
+                    if (e.target.classList && e.target.classList.contains('dir-tree-arrow')) return;
+                    e.stopPropagation();
+                    document.querySelectorAll('#dirTreeContainer .dir-tree-li').forEach(el => el.classList.remove('selected'));
+                    li.classList.add('selected');
+                    moveTargetPath = fullPath;
+                    console.log('moveTargetPath:', moveTargetPath);
+                };
+                ul.appendChild(li);
+            });
+            return ul;
+        }
+
+        async function fetchDirChildren(path) {
+            const token = checkAuth();
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/files?path=${encodeURIComponent(path)}&per_page=1000`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    return buildDirTree(data.items, path);
+                }
+            } catch (e) {}
+            return document.createElement('ul');
+        }
+
+        async function moveFileConfirm() {
+            console.log('moveFileConfirm, moveTargetPath:', moveTargetPath);
+            if (!moveTargetPath) {
+                showToast('请选择目标目录');
+                return;
+            }
+            const token = checkAuth();
+            const src = currentPath ? `${currentPath}/${moveFileName}` : moveFileName;
+            const dst = moveTargetPath;
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/files/move`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ src, dst })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showToast('移动成功');
+                    hideMoveDialog();
+                    loadFiles(currentPath);
+                } else {
+                    showToast(data.message || '移动失败');
+                }
+            } catch (error) {
+                showToast('移动失败');
+            }
         }
     </script>
 </body>

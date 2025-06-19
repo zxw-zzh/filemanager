@@ -300,6 +300,36 @@ def search_files():
     search_in_directory(app.config['UPLOAD_FOLDER'])
     return jsonify(results)
 
+@app.route('/api/files/move', methods=['POST'])
+@token_required
+def move_file():
+    data = request.get_json()
+    src = data.get('src', '')
+    dst = data.get('dst', '')
+    if not src or not dst:
+        return jsonify({'message': '源路径和目标路径不能为空'}), 400
+    src_path = safe_path_join(app.config['UPLOAD_FOLDER'], src)
+    dst_dir = safe_path_join(app.config['UPLOAD_FOLDER'], dst)
+    if not src_path or not dst_dir:
+        return jsonify({'message': '无效的路径'}), 400
+    if not os.path.exists(src_path):
+        return jsonify({'message': '源文件不存在'}), 404
+    if not os.path.exists(dst_dir):
+        os.makedirs(dst_dir, exist_ok=True)
+    new_path = os.path.join(dst_dir, os.path.basename(src_path))
+    abs_src = os.path.abspath(src_path)
+    abs_new = os.path.abspath(new_path)
+    # 禁止移动到自身或子目录
+    if abs_new == abs_src or abs_new.startswith(abs_src + os.sep):
+        return jsonify({'message': '不能将文件或文件夹移动到自身或子目录下'}), 400
+    if os.path.exists(new_path):
+        return jsonify({'message': '目标已存在同名文件或文件夹'}), 400
+    try:
+        shutil.move(src_path, new_path)
+        return jsonify({'message': '移动成功'})
+    except Exception as e:
+        return jsonify({'message': '移动失败: ' + str(e)}), 500
+
 if __name__ == '__main__':
     host = os.environ.get('FLASK_HOST', '0.0.0.0')
     port = int(os.environ.get('FLASK_PORT', 5002))
