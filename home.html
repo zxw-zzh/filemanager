@@ -303,6 +303,9 @@
     </style>
 </head>
 <body>
+    <div id="globalUploadProgressBar" style="display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);width:320px;z-index:9999;background:rgba(255,255,255,0.95);padding:8px 0 2px 0;box-shadow:0 2px 8px rgba(33,150,243,0.10);border-radius:0 0 8px 8px;">
+        <progress id="globalProgress" value="0" max="100" style="width:95%;height:12px;"></progress>
+    </div>
     <div class="header">
         <div class="breadcrumb" id="breadcrumb">
             <a href="#" data-path="">根目录</a>
@@ -355,6 +358,10 @@
             <h3>上传文件</h3>
             <input type="file" id="fileInput" multiple webkitdirectory>
             <!-- 这样既可以选择单个/多个文件，也可以选择整个文件夹 -->
+            <div style="margin: 10px 0;">
+                <progress id="uploadProgress" value="0" max="100" style="width:100%;display:none;"></progress>
+                <span id="uploadPercent" style="display:none;">0%</span>
+            </div>
             <div class="actions">
                 <button class="btn btn-primary" onclick="uploadFile()">上传</button>
                 <button class="btn" onclick="hideUploadDialog()">取消</button>
@@ -620,6 +627,10 @@
             }
             const token = checkAuth();
             let successCount = 0, failCount = 0;
+            const globalBar = document.getElementById('globalUploadProgressBar');
+            const globalProgress = document.getElementById('globalProgress');
+            globalBar.style.display = 'block';
+            globalProgress.value = 0;
             for (let i = 0; i < files.length; i++) {
                 const formData = new FormData();
                 formData.append('file', files[i]);
@@ -628,22 +639,37 @@
                     formData.append('relative_path', files[i].webkitRelativePath);
                 }
                 try {
-                    const response = await fetch(`${API_BASE_URL}/api/files`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: formData
+                    await new Promise((resolve, reject) => {
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('POST', `${API_BASE_URL}/api/files`, true);
+                        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                        xhr.upload.onprogress = function(event) {
+                            if (event.lengthComputable) {
+                                let percent = Math.round((event.loaded / event.total) * 100);
+                                globalProgress.value = percent;
+                            }
+                        };
+                        xhr.onload = function() {
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                successCount++;
+                                resolve();
+                            } else {
+                                failCount++;
+                                resolve();
+                            }
+                        };
+                        xhr.onerror = function() {
+                            failCount++;
+                            resolve();
+                        };
+                        xhr.send(formData);
                     });
-                    if (response.ok) {
-                        successCount++;
-                    } else {
-                        failCount++;
-                    }
+                    globalProgress.value = 0;
                 } catch (error) {
                     failCount++;
                 }
             }
+            globalBar.style.display = 'none';
             hideUploadDialog();
             loadFiles(currentPath);
             fileInput.value = '';
