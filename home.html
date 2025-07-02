@@ -300,11 +300,26 @@
         .dir-tree-arrow.open {
             transform: rotate(90deg);
         }
+        #globalProgress::-webkit-progress-bar {
+            background-color: #f3f3f3;
+            border-radius: 3px;
+        }
+        #globalProgress::-webkit-progress-value {
+            background-color: #2196F3;
+            border-radius: 3px;
+        }
+        #globalProgress::-moz-progress-bar {
+            background-color: #2196F3;
+            border-radius: 3px;
+        }
+        #globalProgress {
+            color: #2196F3;
+        }
     </style>
 </head>
 <body>
-    <div id="globalUploadProgressBar" style="display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);width:320px;z-index:9999;background:rgba(255,255,255,0.95);padding:8px 0 2px 0;box-shadow:0 2px 8px rgba(33,150,243,0.10);border-radius:0 0 8px 8px;">
-        <progress id="globalProgress" value="0" max="100" style="width:95%;height:12px;"></progress>
+    <div id="globalUploadProgressBar" style="display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);width:320px;z-index:9999;">
+        <progress id="globalProgress" value="0" max="100" style="width:100%;height:6px;"></progress>
     </div>
     <div class="header">
         <div class="breadcrumb" id="breadcrumb">
